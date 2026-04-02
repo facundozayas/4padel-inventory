@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4Padel Inventory</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: #f5f5f3; min-height: 100vh; }
+  .screen { display: none; padding: 24px; max-width: 700px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  .login-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .login-logo { font-size: 28px; font-weight: 500; color: #1a1a1a; margin-bottom: 4px; }
+  .login-sub { font-size: 14px; color: #888; margin-bottom: 40px; }
+  .login-card { background: #fff; border-radius: 16px; border: 0.5px solid #e0e0e0; padding: 32px; width: 100%; max-width: 380px; }
+  .login-card h2 { font-size: 16px; font-weight: 500; color: #1a1a1a; margin-bottom: 16px; }
+  .user-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; max-height: 220px; overflow-y: auto; }
+  .user-btn { background: #f5f5f3; border: 0.5px solid #e0e0e0; border-radius: 10px; padding: 12px 10px; cursor: pointer; font-size: 13px; font-weight: 500; color: #1a1a1a; transition: background 0.15s; text-align: left; }
+  .user-btn:hover { background: #ebebea; }
+  .user-btn.selected { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .pin-label { font-size: 13px; color: #888; margin-bottom: 8px; }
+  .pin-display { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .pin-dot { width: 12px; height: 12px; border-radius: 50%; background: #e0e0e0; transition: background 0.15s; }
+  .pin-dot.filled { background: #1a1a1a; }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pin-key { background: #f5f5f3; border: 0.5px solid #e0e0e0; border-radius: 10px; padding: 14px; font-size: 18px; font-weight: 500; cursor: pointer; text-align: center; color: #1a1a1a; transition: background 0.15s; }
+  .pin-key:hover { background: #ebebea; }
+  .pin-key.del { font-size: 14px; color: #888; }
+  .login-err { font-size: 13px; color: #c0392b; text-align: center; margin-top: 12px; min-height: 18px; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .topbar-logo { font-size: 20px; font-weight: 500; color: #1a1a1a; }
+  .topbar-user { font-size: 13px; color: #888; display: flex; align-items: center; gap: 8px; }
+  .logout-btn { background: none; border: 0.5px solid #e0e0e0; border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; color: #888; }
+  .logout-btn:hover { background: #f0f0ee; color: #1a1a1a; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: #ebebea; border-radius: 10px; padding: 3px; }
+  .tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; border-radius: 8px; color: #888; transition: all 0.15s; }
+  .tab.active { background: #fff; color: #1a1a1a; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+  .metric { background: #fff; border-radius: 12px; border: 0.5px solid #e0e0e0; padding: 16px; }
+  .metric-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 500; color: #1a1a1a; }
+  .chart-card { background: #fff; border-radius: 12px; border: 0.5px solid #e0e0e0; padding: 20px; margin-bottom: 16px; }
+  .chart-card h3 { font-size: 14px; font-weight: 500; color: #1a1a1a; margin-bottom: 4px; }
+  .chart-card p { font-size: 12px; color: #888; margin-bottom: 12px; }
+  .chart-select { font-size: 13px; border: 0.5px solid #e0e0e0; border-radius: 8px; padding: 6px 10px; background: #f5f5f3; color: #1a1a1a; margin-bottom: 12px; width: 100%; }
+
+  .form-header { background: #fff; border-radius: 12px; border: 0.5px solid #e0e0e0; padding: 16px 20px; margin-bottom: 12px; }
+  .form-header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .section-title { font-size: 12px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  .turn-selector { display: flex; gap: 8px; margin-top: 12px; }
+  .turn-btn { flex: 1; padding: 10px; border: 0.5px solid #e0e0e0; border-radius: 10px; background: #f5f5f3; font-size: 13px; font-weight: 500; cursor: pointer; color: #888; transition: all 0.15s; }
+  .turn-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+  .product-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  .product-row { background: #fff; border-radius: 10px; border: 0.5px solid #e0e0e0; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .product-name { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+  .qty-control { display: flex; align-items: center; gap: 10px; }
+  .qty-btn { width: 32px; height: 32px; border-radius: 8px; border: 0.5px solid #e0e0e0; background: #f5f5f3; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1a1a1a; }
+  .qty-btn:hover { background: #ebebea; }
+  .qty-input { width: 52px; text-align: center; font-size: 16px; font-weight: 500; border: 0.5px solid #e0e0e0; border-radius: 8px; padding: 6px; background: #f5f5f3; color: #1a1a1a; }
+  .submit-btn { width: 100%; padding: 16px; background: #1a1a1a; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+  .submit-btn:hover { opacity: 0.85; }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .status-msg { font-size: 13px; text-align: center; margin-top: 12px; min-height: 18px; color: #888; }
+
+  .modal-overlay { position: absolute; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.4); display: none; align-items: flex-start; justify-content: center; z-index: 100; min-height: 100vh; padding-top: 120px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 16px; padding: 28px; max-width: 340px; width: 90%; }
+  .modal h3 { font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: #888; margin-bottom: 20px; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-cancel { flex: 1; padding: 12px; border: 0.5px solid #e0e0e0; border-radius: 10px; background: #f5f5f3; font-size: 14px; cursor: pointer; }
+  .modal-confirm { flex: 1; padding: 12px; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginScreen">
+  <div class="login-logo">4Padel</div>
+  <div class="login-sub">Inventory System</div>
+  <div class="login-card">
+    <h2>Select your name</h2>
+    <div class="user-grid" id="userGrid"></div>
+    <div class="pin-label">Enter PIN</div>
+    <div class="pin-display">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key"></button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<div class="screen" id="appScreen">
+  <div class="topbar">
+    <div class="topbar-logo">4Padel</div>
+    <div class="topbar-user">
+      <span id="currentUserLabel"></span>
+      <button class="logout-btn" onclick="logout()">Log out</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+    <div class="tab" onclick="switchTab('stock')">Register stock</div>
+  </div>
+
+  <div id="tabDashboard">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Products tracked</div><div class="metric-value">19</div></div>
+      <div class="metric"><div class="metric-label">Total entries</div><div class="metric-value" id="mEntries">—</div></div>
+      <div class="metric"><div class="metric-label">Last entry by</div><div class="metric-value" style="font-size:15px;" id="mLast">—</div></div>
+    </div>
+    <div class="chart-card">
+      <h3>Stock trend</h3>
+      <p>Units recorded over the last 10 entries</p>
+      <select class="chart-select" id="productSelect" onchange="renderChart()"></select>
+      <canvas id="trendChart" height="140"></canvas>
+    </div>
+  </div>
+
+  <div id="tabStock" style="display:none;">
+    <div class="form-header">
+      <div class="section-title">Stock count</div>
+      <p>Enter the current quantity for each product</p>
+      <div class="turn-selector">
+        <button class="turn-btn active" id="turnMorning" onclick="setTurn('Morning')">Morning</button>
+        <button class="turn-btn" id="turnAfternoon" onclick="setTurn('Afternoon')">Afternoon</button>
+      </div>
+    </div>
+    <div class="product-grid" id="productGrid"></div>
+    <button class="submit-btn" id="submitBtn" onclick="openConfirm()">Submit stock count</button>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Confirm submission</h3>
+    <p id="modalDesc">This will record the current stock count to Google Sheets.</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="modal-confirm" onclick="submitStock()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = '19QgtV9syHq3h8r3k8rcP11eCLtTwrQO-9zDcrh__jqU';
+const CLIENT_ID = '108531080913-ue1e47auuca3i3rsksbth7o16h134gqf.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+const SHEET_NAME = 'actual';
+
+const PRODUCTS = [
+  'Water','Gas water','Coca Cola','Coca Cola Zero',
+  'Beer Hell','Beer K','Beer K (no alcohol)','Radler',
+  'Club Mate','Club Mate Ginger','Powerade R','Powerade B',
+  'Fuze Tea','Orange Juice','Vitamin Well','Snacks','Pins','Pizza','Balls'
+];
+
+const USERS = {
+  'Victor H. Zayas':  '1405',
+  'Pablo Cigoy':      '2205',
+  'Sofiia V.':        '2307',
+  'Franco Espinosa':  '2608',
+  'Pablo Riquelme':   '1809',
+  'Bella Tovar':      '1711',
+  'Ivan Pereyra':     '0108',
+  'Pablo N.':         '0207',
+  'Facundo Zayas':    '2602',
+};
+
+let currentUser = null;
+let pinBuffer = '';
+let selectedUserEl = null;
+let currentTurn = 'Morning';
+let chartInst = null;
+let historyData = [];
+let gapiLoaded = false;
+let gsiLoaded = false;
+let tokenClient = null;
+
+function buildLoginUsers() {
+  const grid = document.getElementById('userGrid');
+  Object.keys(USERS).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'user-btn';
+    btn.textContent = name;
+    btn.onclick = () => selectUser(name, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function selectUser(name, el) {
+  currentUser = name;
+  pinBuffer = '';
+  updatePinDots();
+  document.getElementById('loginErr').textContent = '';
+  if (selectedUserEl) selectedUserEl.classList.remove('selected');
+  el.classList.add('selected');
+  selectedUserEl = el;
+}
+
+function pinPress(d) {
+  if (!currentUser) { document.getElementById('loginErr').textContent = 'Select your name first'; return; }
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(checkPin, 150);
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+  document.getElementById('loginErr').textContent = '';
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++)
+    document.getElementById('d' + i).classList.toggle('filled', i < pinBuffer.length);
+}
+
+function checkPin() {
+  if (pinBuffer === USERS[currentUser]) {
+    loginSuccess();
+  } else {
+    document.getElementById('loginErr').textContent = 'Incorrect PIN. Try again.';
+    pinBuffer = '';
+    updatePinDots();
+  }
+}
+
+function loginSuccess() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').classList.add('active');
+  document.getElementById('currentUserLabel').textContent = currentUser;
+  buildProductGrid();
+  buildProductSelect();
+  initGapi();
+}
+
+function logout() {
+  currentUser = null;
+  pinBuffer = '';
+  updatePinDots();
+  if (selectedUserEl) { selectedUserEl.classList.remove('selected'); selectedUserEl = null; }
+  document.getElementById('loginErr').textContent = '';
+  document.getElementById('appScreen').classList.remove('active');
+  document.getElementById('loginScreen').style.display = 'flex';
+  switchTab('dashboard');
+  resetForm();
+}
+
+function setTurn(t) {
+  currentTurn = t;
+  document.getElementById('turnMorning').classList.toggle('active', t === 'Morning');
+  document.getElementById('turnAfternoon').classList.toggle('active', t === 'Afternoon');
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((el, i) =>
+    el.classList.toggle('active', (i===0&&t==='dashboard')||(i===1&&t==='stock')));
+  document.getElementById('tabDashboard').style.display = t==='dashboard' ? 'block' : 'none';
+  document.getElementById('tabStock').style.display = t==='stock' ? 'block' : 'none';
+  if (t === 'dashboard') loadSheetHistory();
+}
+
+function buildProductGrid() {
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = '';
+  PRODUCTS.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'product-row';
+    row.innerHTML = `
+      <div class="product-name">${p}</div>
+      <div class="qty-control">
+        <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+        <input class="qty-input" type="number" min="0" value="0" id="qty_${i}" />
+        <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+      </div>`;
+    grid.appendChild(row);
+  });
+}
+
+function changeQty(i, d) {
+  const inp = document.getElementById('qty_' + i);
+  inp.value = Math.max(0, parseInt(inp.value || 0) + d);
+}
+
+function buildProductSelect() {
+  const sel = document.getElementById('productSelect');
+  sel.innerHTML = '';
+  PRODUCTS.forEach((p, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = p;
+    sel.appendChild(o);
+  });
+}
+
+function openConfirm() {
+  const d = new Date();
+  document.getElementById('modalDesc').textContent =
+    `${currentUser} — ${currentTurn} — ${d.toLocaleDateString('en-GB')} ${d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'})}. Confirm submission to Google Sheets?`;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeConfirm() { document.getElementById('modalOverlay').classList.remove('show'); }
+
+async function submitStock() {
+  closeConfirm();
+  const btn = document.getElementById('submitBtn');
+  const msg = document.getElementById('statusMsg');
+  btn.disabled = true;
+  msg.style.color = '#888';
+  msg.textContent = 'Connecting to Google Sheets...';
+
+  const now = new Date();
+  const ts = now.toLocaleString('en-GB', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const quantities = PRODUCTS.map((_, i) => parseInt(document.getElementById('qty_' + i).value || 0));
+  const row = [ts, currentUser, currentTurn, ...quantities];
+
+  try {
+    await ensureToken();
+    const token = gapi.client.getToken().access_token;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}:append?valueInputOption=USER_ENTERED`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [row] })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Sheets error'); }
+    msg.style.color = '#2e7d32';
+    msg.textContent = 'Stock submitted successfully!';
+    setTimeout(() => { msg.textContent = ''; msg.style.color = '#888'; btn.disabled = false; resetForm(); }, 2500);
+  } catch(e) {
+    msg.style.color = '#c0392b';
+    msg.textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+function resetForm() {
+  PRODUCTS.forEach((_, i) => { const el = document.getElementById('qty_' + i); if(el) el.value = 0; });
+}
+
+function initGapi() {
+  const s1 = document.createElement('script');
+  s1.src = 'https://apis.google.com/js/api.js';
+  s1.onload = () => gapi.load('client', async () => {
+    await gapi.client.init({ discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+    gapiLoaded = true;
+    trySetupTokenClient();
+  });
+  document.head.appendChild(s1);
+
+  const s2 = document.createElement('script');
+  s2.src = 'https://accounts.google.com/gsi/client';
+  s2.onload = () => { gsiLoaded = true; trySetupTokenClient(); };
+  document.head.appendChild(s2);
+}
+
+function trySetupTokenClient() {
+  if (!gapiLoaded || !gsiLoaded) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: () => {}
+  });
+}
+
+function ensureToken() {
+  return new Promise((resolve, reject) => {
+    if (!tokenClient) { reject(new Error('Google not ready yet, try again in a moment')); return; }
+    tokenClient.callback = (resp) => {
+      if (resp.error) reject(new Error(resp.error));
+      else resolve();
+    };
+    const token = gapi.client.getToken();
+    if (!token || !token.access_token) {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+      resolve();
+    }
+  });
+}
+
+async function loadSheetHistory() {
+  if (!gapiLoaded || !gsiLoaded) return;
+  try {
+    await ensureToken();
+    const token = gapi.client.getToken().access_token;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}`;
+    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    historyData = (data.values || []).slice(1);
+    document.getElementById('mEntries').textContent = historyData.length;
+    if (historyData.length > 0) {
+      const last = historyData[historyData.length - 1];
+      document.getElementById('mLast').textContent = (last[1] || '—').split(' ')[0];
+    }
+    renderChart();
+  } catch(e) {
+    document.getElementById('mEntries').textContent = '—';
+  }
+}
+
+function renderChart() {
+  const idx = parseInt(document.getElementById('productSelect').value);
+  const colIdx = 3 + idx;
+  const recent = historyData.slice(-10);
+  const labels = recent.map(r => r[0] ? r[0].split(',')[0] : '');
+  const values = recent.map(r => parseInt(r[colIdx] || 0));
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: '#1a1a1a',
+        backgroundColor: 'rgba(26,26,26,0.06)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#1a1a1a',
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#888', maxRotation: 30 } },
+        y: { grid: { color: '#f0f0ee' }, ticks: { font: { size: 11 }, color: '#888' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+buildLoginUsers();
+</script>
+</body>
+</html>
