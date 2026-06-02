@@ -4,6 +4,9 @@ A lightweight web app for real-time stock control at 4Padel Berlin, built as an 
 
 ---
 
+**Live app:** [facundozayas.github.io/4padel-inventory](https://facundozayas.github.io/4padel-inventory)  
+**Repository:** [github.com/facundozayas/4padel-inventory](https://github.com/facundozayas/4padel-inventory)
+
 ## The Problem
 
 4Padel Berlin operates with a rotating team of minijobbers across morning and afternoon shifts. Before this system, stock counting was done manually — either on paper or not at all — which led to three recurring issues:
