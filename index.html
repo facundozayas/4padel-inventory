@@ -579,7 +579,7 @@ async function saveConfig(){
     await ensureToken();
     const token=gapi.client.getToken().access_token;
     const rows=[['product','box_size'],...newNames.map((n,i)=>[n,newBoxes[i]])];
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_CONFIG}!A1:B${rows.length}?valueInputOption=USER_ENTERED`,{
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_CONFIG+'!A1:B'+rows.length)}?valueInputOption=USER_ENTERED`,{
       method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({values:rows})
     });
     productNames=newNames; boxSizes=newBoxes;
@@ -634,7 +634,7 @@ async function saveSchedule(){
     await ensureToken();
     const token=gapi.client.getToken().access_token;
     const rows=[['date_key','staff'],...Object.entries(scheduleData).filter(([,v])=>v).map(([k,v])=>[k,v])];
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_SCHEDULE}!A1:B${rows.length}?valueInputOption=USER_ENTERED`,{
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_SCHEDULE+'!A1:B'+rows.length)}?valueInputOption=USER_ENTERED`,{
       method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({values:rows})
     });
     msg.style.color='#2e7d32'; msg.textContent='Schedule saved!';
